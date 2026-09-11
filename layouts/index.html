@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ .Site.Title }} — authentication in pure Go</title>
+<meta name="description" content="Authentication in pure Go: the factors that prove somebody is present — a security key over any transport, a one-time code, and a policy that counts factors by KIND rather than by number — and the directory that says who they are and what can prove them, served back out over LDAP. CGO_ENABLED=0, verified against a real security key and read by OpenLDAP's own ldapsearch.">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1f24; --muted: #57606a; --card: #f6f8fa;
+    --border: #d0d7de; --accent: #0079a8; --accent-fg: #ffffff;
+    --protocol: #0079a8; --factor: #1a7f37; --policy: #6f42c1;
+    --identity: #9a6700; --server: #bc4c00;
+  }
+  /* System mode (no explicit choice) follows the OS preference. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22;
+      --border: #30363d; --accent: #22cce2; --accent-fg: #0d1117;
+      --protocol: #22cce2; --factor: #3fb950; --policy: #a371f7;
+      --identity: #d4a72c; --server: #ec775c;
+    }
+  }
+  /* Forced dark (manual toggle). */
+  :root[data-theme="dark"] {
+    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22;
+    --border: #30363d; --accent: #22cce2; --accent-fg: #0d1117;
+    --protocol: #22cce2; --factor: #3fb950; --policy: #a371f7;
+    --identity: #d4a72c; --server: #ec775c;
+  }
+  .theme-toggle {
+    position: fixed; top: 14px; right: 14px; z-index: 10;
+    font: inherit; font-size: .8rem; cursor: pointer; padding: 6px 12px;
+    color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 72px 0 32px; text-align: center; }
+  .logo { width: 88px; height: 88px; margin: 0 auto 18px; display: block; }
+  h1 { font-size: 2.6rem; margin: 0 0 .3em; letter-spacing: -.02em; }
+  .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto; max-width: 680px; }
+  .pills { margin: 22px 0 0; }
+  .pill {
+    display: inline-block; margin: 4px; padding: 3px 10px; font-size: .82rem;
+    color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  }
+  .cta { margin: 30px 0 0; }
+  .btn {
+    display: inline-block; padding: 10px 18px; margin: 4px; border-radius: 8px; text-decoration: none;
+    font-weight: 600; border: 1px solid var(--border);
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .btn.ghost { color: var(--fg); background: transparent; }
+  .lead { color: var(--fg); max-width: 800px; margin: 8px auto 0; text-align: center; }
+  .lead code { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+  h2.section { text-align: center; margin: 40px 0 4px; font-size: 1.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 16px 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; }
+  .card h3 { margin: 0 0 .35em; font-size: 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card h3 a { text-decoration: none; }
+  .card .ver { color: var(--muted); font-size: .85rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 0 .6em; }
+  .card p { margin: 0 0 .8em; color: var(--fg); font-size: .95rem; }
+  .card p code { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+  .card .badges { margin-top: auto; }
+  .card .badges img { height: 20px; vertical-align: middle; }
+  .kind { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
+  .kind.protocol { color: var(--protocol); }
+  .kind.factor { color: var(--factor); }
+  .kind.policy { color: var(--policy); }
+  .kind.identity { color: var(--identity); }
+  .kind.server { color: var(--server); }
+  .card h3 .tags { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .type { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
+  .type.lib { color: var(--accent); border-color: var(--accent); }
+  .type.tool { color: var(--accent-fg); background: var(--accent); border-color: var(--accent); }
+  .principles { color: var(--muted); text-align: center; padding: 10px 0 0; max-width: 820px; margin: 0 auto; }
+  footer { color: var(--muted); text-align: center; padding: 40px 0 56px; font-size: .9rem; }
+  a { color: var(--accent); }
+</style>
+<script>
+  // Set the saved theme before paint to avoid a flash; "system" leaves no attribute.
+  (function(){var m=localStorage.getItem('theme');if(m&&m!=='system')document.documentElement.setAttribute('data-theme',m);})();
+</script>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light, dark or system theme"><span id="theme-label">🖥️ System</span></button>
+  <header class="wrap">
+    <img class="logo" src="/img/logo.svg" alt="go-fileshare logo" width="88" height="88">
+    <h1>go-fileshare</h1>
+    <p class="tagline">One disk image, served over <strong>SMB</strong>, <strong>NFS</strong>,
+      <strong>WebDAV</strong> and <strong>SFTP</strong> — the same users, the same per-share access,
+      from one configuration file.</p>
+    <div class="pills">
+      <span class="pill">CGO_ENABLED=0</span>
+      <span class="pill">one binary</span>
+      <span class="pill">fat32 · exfat · ext4 · ntfs · iso9660 · squashfs · hfs+</span>
+      <span class="pill">NTLMv2 · SSH keys · OIDC</span>
+      <span class="pill">build tags leave a protocol out entirely</span>
+      <span class="pill">checked against clients it did not write</span>
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/go-fileshare/.github/blob/main/profile/README.md">Documentation</a>
+      <a class="btn ghost" href="https://github.com/go-fileshare">GitHub</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lead">A person wants to <strong>share an image</strong>. Which protocol carries it
+      is a property of the client at the other end: macOS and Windows reach for SMB, a Linux fleet
+      already has NFS, a browser or a phone has HTTP. Running four servers, each with its own
+      configuration file and its own idea of who <em>alice</em> is, is a way to get three of them
+      subtly wrong.</p>
+
+    <p class="lead"><strong>The protocols do not agree about who is asking</strong>, and that is a
+      fact about the protocols rather than a limitation here. SMB proves somebody by NTLMv2, which
+      needs the password or its <code>MD4(UTF16LE(password))</code>. WebDAV takes HTTP Basic or a
+      bearer token an identity provider signed. SFTP takes a public key or a certificate. NFSv3
+      takes <strong>nothing at all</strong>: <code>AUTH_UNIX</code> is a claim the client makes
+      about itself, and the wire cannot disagree with it.</p>
+
+    <p class="lead">So <strong>a share that names who may use it is not exported over NFS</strong> —
+      not a warning and not an option. A configuration that says <em>photos belongs to alice</em>
+      and a protocol that hands photos to whoever connects cannot both be honoured, and quietly
+      widening access is the worse of the two failures. <code>fileshare check</code> prints the
+      whole matrix, every share against every protocol and every person against every protocol,
+      before anything is restarted.</p>
+
+    <p class="lead"><strong>The people can come from somewhere else.</strong> A <code>user</code>
+      block is the whole directory for a household; a site whose people are already in a database
+      or in LDAP names them where they are, through
+      <a href="https://pkg.go.dev/github.com/go-authn/directory">go-authn/directory</a> — the same
+      <code>users</code> block <a href="https://github.com/go-fileshare/authnd">authnd</a> reads, so a
+      site describes its directory once.</p>
+
+    <h2 class="section">Repositories</h2>
+    <section class="grid">
+      {{ range .Site.Params.repos }}
+      <article class="card">
+        <h3>
+          <a href="{{ if .godoc }}https://pkg.go.dev/github.com/go-fileshare/{{ .name }}{{ else }}https://github.com/go-fileshare/{{ .name }}{{ end }}"><code>{{ .name }}</code></a>
+          <span class="tags"><span class="type {{ .type }}">{{ .type }}</span><span class="kind {{ if eq .kind "3d" }}id3d{{ else }}{{ .kind }}{{ end }}">{{ .kind }}</span></span>
+        </h3>
+        <p class="ver">{{ with .version }}{{ . }} · {{ end }}<a href="https://github.com/go-fileshare/{{ .name }}">github.com/go-fileshare/{{ .name }}</a></p>
+        <p>{{ .blurb | markdownify }}</p>
+        <div class="badges">
+          {{ if .ci }}<a href="https://github.com/go-fileshare/{{ .name }}/actions/workflows/ci.yml"><img src="https://github.com/go-fileshare/{{ .name }}/actions/workflows/ci.yml/badge.svg" alt="CI"></a>{{ end }}
+          {{ with .cov }}<img src="https://img.shields.io/badge/coverage-{{ . | urlquery }}-{{ if eq . "100%" }}brightgreen{{ else }}green{{ end }}" alt="coverage {{ . }}{{ if ne . "100%" }} — the floor CI enforces; the standard is 100%{{ end }}">{{ end }}
+        </div>
+      </article>
+      {{ end }}
+    </section>
+    <p class="principles">One image, opened once, shared by every protocol behind one lock.
+      Pure Go with <code>CGO_ENABLED=0</code>, gated in CI on Linux, macOS and Windows and on six
+      architectures under qemu. Verified against clients this project did not write: Samba's
+      <code>smbclient</code>, macOS's Finder, Windows' own redirector, OpenSSH's <code>sftp</code>
+      and <code>mount_nfs</code> — which is how the one defect only Windows could find was found.</p>
+  </main>
+
+  <footer class="wrap">
+    BSD-3-Clause · <a href="https://github.com/go-fileshare">github.com/go-fileshare</a>
+  </footer>
+  <script>
+  (function(){
+    var order=['system','light','dark'], root=document.documentElement;
+    var labels={system:'🖥️ System',light:'☀️ Light',dark:'🌙 Dark'};
+    function apply(m){ if(m==='system'){root.removeAttribute('data-theme');}else{root.setAttribute('data-theme',m);} localStorage.setItem('theme',m); var el=document.getElementById('theme-label'); if(el)el.textContent=labels[m]; }
+    var mode=localStorage.getItem('theme')||'system'; apply(mode);
+    var btn=document.getElementById('theme-toggle');
+    if(btn) btn.addEventListener('click',function(){ mode=order[(order.indexOf(mode)+1)%order.length]; apply(mode); });
+  })();
+  </script>
+</body>
+</html>

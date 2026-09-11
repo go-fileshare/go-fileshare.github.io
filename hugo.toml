@@ -1,0 +1,30 @@
+baseURL = "https://go-fileshare.github.io/"
+title = "go-fileshare"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
+
+[markup.goldmark.renderer]
+  unsafe = true
+
+# Each repo card.
+# "kind"  = which slice: server / protocol / identity.
+# "type"  = lib (importable module) vs tool.
+# "ci"    = true only where a GitHub Actions ci.yml actually exists, so the CI
+#           badge never renders an empty "no status" -- honest badges only.
+# "godoc" = true only where a module is PUBLISHED, so the card never links to a
+#           pkg.go.dev 404; a repo without one links to itself. Same rule as ci.
+# "cov"   = what CI enforces, not what was measured on somebody's laptop: an
+#           exact 100% where the gate refuses anything less, and the recorded
+#           floor otherwise. The standard is 100% everywhere; three repos do not
+#           meet it yet and the badge says so rather than rounding up.
+# "blurb" = drawn straight from each repo's README.
+
+# --- the factors: is this person here, now? -----------------------------------
+[[params.repos]]
+  name = "fileshare"
+  kind = "server"
+  type = "tool"
+  version = "v0.4.0"
+  ci = true
+  godoc = false
+  cov = "≥70%"
+  blurb = "One disk image over SMB, NFS, WebDAV and SFTP: the same users, the same per-share access, one configuration file. A share that names who may use it is **not** exported over NFS, because `AUTH_UNIX` is a claim rather than a proof."
