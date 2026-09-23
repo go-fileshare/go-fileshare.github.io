@@ -93,14 +93,14 @@
     <img class="logo" src="/img/logo.svg" alt="go-fileshare logo" width="88" height="88">
     <h1>go-fileshare</h1>
     <p class="tagline">One disk image, served over <strong>SMB</strong>, <strong>NFS</strong>,
-      <strong>WebDAV</strong> and <strong>SFTP</strong> — the same users, the same per-share access,
-      from one configuration file.</p>
+      <strong>WebDAV</strong>, <strong>SFTP</strong> and <strong>S3</strong> — the same users, the
+      same per-share access, from one configuration file.</p>
     <div class="pills">
       <span class="pill">CGO_ENABLED=0</span>
       <span class="pill">one binary</span>
       <span class="pill">fat32 · exfat · ext4 · ntfs · ufs · iso9660 · squashfs · hfs+</span>
       <span class="pill">apfs · btrfs · xfs · zfs, by partition</span>
-      <span class="pill">NTLMv2 · SSH keys · SSH certificates · OIDC · Kerberos</span>
+      <span class="pill">NTLMv2 · SSH keys · SSH certificates · OIDC · Kerberos · SigV4</span>
       <span class="pill">build tags leave a protocol out entirely</span>
       <span class="pill">checked against clients it did not write</span>
     </div>
@@ -120,9 +120,18 @@
     <p class="lead"><strong>The protocols do not agree about who is asking</strong>, and that is a
       fact about the protocols rather than a limitation here. SMB proves somebody by NTLMv2, which
       needs the password or its <code>MD4(UTF16LE(password))</code>. WebDAV takes HTTP Basic or a
-      bearer token an identity provider signed. SFTP takes a public key or a certificate. NFSv3
+      bearer token an identity provider signed. SFTP takes a public key or a certificate. S3 takes
+      a <strong>SigV4 signature</strong> &mdash; an HMAC computed from the secret, which therefore
+      has to be the password itself and not a hash of it. NFSv3
       takes <strong>nothing at all</strong>: <code>AUTH_UNIX</code> is a claim the client makes
       about itself, and the wire cannot disagree with it.</p>
+
+    <p class="lead"><strong>So one directory answers different protocols for different people.</strong>
+      Somebody whose password is held here reaches SMB, WebDAV and S3. Somebody an LDAP server will
+      only <em>check</em> reaches WebDAV and neither of the other two. Somebody with only a public
+      key reaches SFTP. That is not a policy &mdash; it is what each protocol needs in order to
+      prove anything &mdash; and <code>fileshare check</code> prints the whole matrix before
+      anything is restarted, rather than leaving it to be found at a mount.</p>
 
     <p class="lead">So <strong>a share that names who may use it is not exported over NFS</strong> —
       not a warning and not an option. A configuration that says <em>photos belongs to alice</em>
