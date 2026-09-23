@@ -99,7 +99,8 @@
       <span class="pill">CGO_ENABLED=0</span>
       <span class="pill">one binary</span>
       <span class="pill">fat32 · exfat · ext4 · ntfs · ufs · iso9660 · squashfs · hfs+</span>
-      <span class="pill">NTLMv2 · SSH keys · OIDC</span>
+      <span class="pill">apfs · btrfs · xfs · zfs, by partition</span>
+      <span class="pill">NTLMv2 · SSH keys · SSH certificates · OIDC · Kerberos</span>
       <span class="pill">build tags leave a protocol out entirely</span>
       <span class="pill">checked against clients it did not write</span>
     </div>
@@ -130,11 +131,18 @@
       whole matrix, every share against every protocol and every person against every protocol,
       before anything is restarted.</p>
 
+    <p class="lead"><strong>That refusal used to be permanent, and is not any more.</strong> A
+      <code>kerberos</code> block gives NFS something to check: <code>sec=krb5</code> carries a
+      principal a ticket <em>proves</em>, rather than a uid the client asserts — and a restricted
+      share is then exported over NFS like anywhere else. The realm is compared, not just the name
+      before the <code>@</code>: two realms can each have an <em>alice</em>, and only one of them
+      is yours.</p>
+
     <p class="lead"><strong>The people can come from somewhere else.</strong> A <code>user</code>
       block is the whole directory for a household; a site whose people are already in a database
       or in LDAP names them where they are, through
       <a href="https://pkg.go.dev/github.com/go-authn/directory">go-authn/directory</a> — the same
-      <code>users</code> block <a href="https://github.com/go-fileshare/authnd">authnd</a> reads, so a
+      <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a
       site describes its directory once.</p>
 
     <h2 class="section">Repositories</h2>
