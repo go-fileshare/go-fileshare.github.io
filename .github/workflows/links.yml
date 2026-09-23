@@ -4,6 +4,14 @@ name: links
 # 404: authnd lives in go-authn. The organisation profile carries the SAME link
 # and has it right, because .github/ has a link check and this repository did
 # not. A dead link on a landing page breaks nothing that complains.
+#
+# ⛔ THE CHECK READS THE BUILT SITE, NOT THE LAYOUTS. The first version of this
+# file grepped layouts/ and failed on its own first run against
+# `https://github.com/go-fileshare/{{ .name }}` -- a Hugo template expression,
+# not a URL. Skipping anything with a brace in it would have "fixed" that and
+# left the per-repository card links unchecked, which is most of the page's
+# links. Building first expands them into the URLs a reader actually gets,
+# which is the only set worth checking.
 
 on:
   pull_request:
@@ -19,14 +27,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.162.1"
+          extended: true
+      - run: hugo --minify --destination ./public
       - name: Check
         run: |
           set -uo pipefail
           # The character class matters: an extractor that stops only at ) and "
           # carries a closing > or < into the request.
-          urls=$(grep -rhoE 'https?://[^)">< [:space:]]+' layouts/ hugo.toml content/ \
-                 | sed 's/[.,]$//' | sort -u)
-          test -n "$urls" || { echo "::error::no links found; are the layouts still there?"; exit 1; }
+          urls=$(grep -rhoE 'https?://[^)">< [:space:]]+' public/ | sed 's/[.,]$//' | sort -u)
+          test -n "$urls" || { echo "::error::no links found; did the site build?"; exit 1; }
+          echo "checking $(printf '%s\n' "$urls" | wc -l) distinct URLs"
           fail=0
           while read -r u; do
             # img.shields.io renders anything asked of it and proves nothing.
