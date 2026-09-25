@@ -113,7 +113,13 @@ this configuration can be served</span></pre>
       <div><div class="n">1</div><div class="l">image, opened once, behind one lock</div></div>
       {{ $t := index (where .Site.Params.repos "name" "fileshare") 0 }}
       <div><div class="n">{{ $t.cov }}</div><div class="l">coverage the CI gate enforces on <code>{{ $t.name }}</code></div></div>
-      <div><div class="n">3 × 6</div><div class="l">Linux, macOS and Windows; six architectures under qemu</div></div>
+      {{/* ⛔ This said "3 × 6", which multiplied two axes that do not
+           multiply. CI runs three OS jobs, each on its runner's own
+           architecture — there is no Windows on s390x and no macOS on
+           ppc64le — and a SEPARATE six-architecture matrix that is entirely
+           Linux. Of those six, amd64 and arm64 run natively and only the
+           other four go through qemu, so "six under qemu" was wrong too. */}}
+      <div><div class="n">6</div><div class="l">Linux architectures, four of them under qemu — plus macOS and Windows on their own</div></div>
     </div>
   </div></section>
 
