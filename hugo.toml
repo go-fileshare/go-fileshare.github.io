@@ -28,3 +28,28 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
   godoc = false
   cov = "≥70%"
   blurb = "One disk image over SMB, NFS, WebDAV, SFTP and **S3**: the same users, the same per-share access, one configuration file. A share that names who may use it is **not** exported over NFS, because `AUTH_UNIX` is a claim rather than a proof — unless a `kerberos` block gives NFS a ticket to check. Over S3 a share is a bucket, signed with SigV4."
+
+# The five protocols this binary has. The list is not typed from memory: it is
+# what `fileshare --protocol <nonsense>` enumerates when it refuses, which is
+# the binary reading its own registry — "it has nfs, s3, sftp, smb and webdav".
+# "proves" = what the protocol can actually check about a person, which is what
+# decides who it can serve. Drawn from `fileshare check`'s own matrix.
+[[params.protocols]]
+  name = "smb"
+  proves = "NTLMv2. Needs the password, or its `MD4(UTF16LE(password))` — an NT hash is enough, and is what a directory should hold if SMB is all it serves."
+
+[[params.protocols]]
+  name = "nfs"
+  proves = "**Nothing, on its own.** `AUTH_UNIX` is a claim the client makes about itself and the wire cannot disagree with it — so a restricted share is not exported here at all, unless a `kerberos` block gives it `sec=krb5`."
+
+[[params.protocols]]
+  name = "webdav"
+  proves = "HTTP Basic, or a bearer token an identity provider signed. The most forgiving of the five: a verifier the directory can only *check* is enough."
+
+[[params.protocols]]
+  name = "sftp"
+  proves = "A public key or a certificate. Somebody with only `authorized_keys` reaches SFTP and none of the others — and somebody with only a password does not reach it."
+
+[[params.protocols]]
+  name = "s3"
+  proves = "A SigV4 signature: an HMAC computed from the secret, which therefore has to be **the password itself** and not a hash of it. A share is a bucket."

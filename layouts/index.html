@@ -3,193 +3,128 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ .Site.Title }} — authentication in pure Go</title>
-<meta name="description" content="Authentication in pure Go: the factors that prove somebody is present — a security key over any transport, a one-time code, and a policy that counts factors by KIND rather than by number — and the directory that says who they are and what can prove them, served back out over LDAP. CGO_ENABLED=0, verified against a real security key and read by OpenLDAP's own ldapsearch.">
-<style>
-  :root {
-    --bg: #ffffff; --fg: #1b1f24; --muted: #57606a; --card: #f6f8fa;
-    --border: #d0d7de; --accent: #0079a8; --accent-fg: #ffffff;
-    --protocol: #0079a8; --factor: #1a7f37; --policy: #6f42c1;
-    --identity: #9a6700; --server: #bc4c00;
-  }
-  /* System mode (no explicit choice) follows the OS preference. */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme]) {
-      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22;
-      --border: #30363d; --accent: #22cce2; --accent-fg: #0d1117;
-      --protocol: #22cce2; --factor: #3fb950; --policy: #a371f7;
-      --identity: #d4a72c; --server: #ec775c;
-    }
-  }
-  /* Forced dark (manual toggle). */
-  :root[data-theme="dark"] {
-    --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --card: #161b22;
-    --border: #30363d; --accent: #22cce2; --accent-fg: #0d1117;
-    --protocol: #22cce2; --factor: #3fb950; --policy: #a371f7;
-    --identity: #d4a72c; --server: #ec775c;
-  }
-  .theme-toggle {
-    position: fixed; top: 14px; right: 14px; z-index: 10;
-    font: inherit; font-size: .8rem; cursor: pointer; padding: 6px 12px;
-    color: var(--fg); background: var(--card); border: 1px solid var(--border); border-radius: 999px;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
-  header { padding: 72px 0 32px; text-align: center; }
-  .logo { width: 88px; height: 88px; margin: 0 auto 18px; display: block; }
-  h1 { font-size: 2.6rem; margin: 0 0 .3em; letter-spacing: -.02em; }
-  .tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto; max-width: 680px; }
-  .pills { margin: 22px 0 0; }
-  .pill {
-    display: inline-block; margin: 4px; padding: 3px 10px; font-size: .82rem;
-    color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 999px;
-  }
-  .cta { margin: 30px 0 0; }
-  .btn {
-    display: inline-block; padding: 10px 18px; margin: 4px; border-radius: 8px; text-decoration: none;
-    font-weight: 600; border: 1px solid var(--border);
-  }
-  .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-  .btn.ghost { color: var(--fg); background: transparent; }
-  .lead { color: var(--fg); max-width: 800px; margin: 8px auto 0; text-align: center; }
-  .lead code { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
-  h2.section { text-align: center; margin: 40px 0 4px; font-size: 1.4rem; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 16px 0 8px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; }
-  .card h3 { margin: 0 0 .35em; font-size: 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .card h3 a { text-decoration: none; }
-  .card .ver { color: var(--muted); font-size: .85rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0 0 .6em; }
-  .card p { margin: 0 0 .8em; color: var(--fg); font-size: .95rem; }
-  .card p code { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
-  .card .badges { margin-top: auto; }
-  .card .badges img { height: 20px; vertical-align: middle; }
-  .kind { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); }
-  .kind.protocol { color: var(--protocol); }
-  .kind.factor { color: var(--factor); }
-  .kind.policy { color: var(--policy); }
-  .kind.identity { color: var(--identity); }
-  .kind.server { color: var(--server); }
-  .card h3 .tags { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  .type { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
-  .type.lib { color: var(--accent); border-color: var(--accent); }
-  .type.tool { color: var(--accent-fg); background: var(--accent); border-color: var(--accent); }
-  .principles { color: var(--muted); text-align: center; padding: 10px 0 0; max-width: 820px; margin: 0 auto; }
-  footer { color: var(--muted); text-align: center; padding: 40px 0 56px; font-size: .9rem; }
-  a { color: var(--accent); }
-</style>
-<script>
-  // Set the saved theme before paint to avoid a flash; "system" leaves no attribute.
-  (function(){var m=localStorage.getItem('theme');if(m&&m!=='system')document.documentElement.setAttribute('data-theme',m);})();
-</script>
+{{/* ⛔ This title and description described go-AUTHN for as long as the site
+     existed — the page was seeded from that org's layout and the <head> was
+     never localised, so every browser tab and every search result called
+     go-fileshare an authentication project. The body was right the whole time,
+     which is why nobody saw it: the defect lived in the two lines a reader
+     never looks at and a build never checks. */}}
+<title>{{ .Site.Title }} — one disk image over SMB, NFS, WebDAV, SFTP and S3</title>
+<meta name="description" content="go-fileshare serves one disk image over SMB, NFS, WebDAV, SFTP and S3 — the same users, the same per-share access, from one configuration file. The protocols disagree about who is asking, so what a person can be served depends on what the directory holds for them, and `fileshare check` prints the whole matrix before anything is restarted. Pure Go, CGO_ENABLED=0, checked against clients it did not write.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+{{ partial "styles.html" . }}
 </head>
-<body>
-  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light, dark or system theme"><span id="theme-label">🖥️ System</span></button>
-  <header class="wrap">
-    <img class="logo" src="/img/logo.svg" alt="go-fileshare logo" width="88" height="88">
-    <h1>go-fileshare</h1>
-    <p class="tagline">One disk image, served over <strong>SMB</strong>, <strong>NFS</strong>,
-      <strong>WebDAV</strong>, <strong>SFTP</strong> and <strong>S3</strong> — the same users, the
-      same per-share access, from one configuration file.</p>
-    <div class="pills">
-      <span class="pill">CGO_ENABLED=0</span>
-      <span class="pill">one binary</span>
-      <span class="pill">fat32 · exfat · ext4 · ntfs · ufs · iso9660 · squashfs · hfs+</span>
-      <span class="pill">apfs · btrfs · xfs · zfs, by partition</span>
-      <span class="pill">NTLMv2 · SSH keys · SSH certificates · OIDC · Kerberos · SigV4</span>
-      <span class="pill">build tags leave a protocol out entirely</span>
-      <span class="pill">checked against clients it did not write</span>
+<body class="lm">
+  <header class="nav"><div class="wrap">
+    <a class="brand" href="/"><img class="glyph" src="/img/logo.svg" width="32" height="32" alt="go-fileshare logo"> go-fileshare</a>
+    <nav><a href="#why">Why</a><a href="#protocols">Protocols</a><a href="#eco">Repository</a></nav>
+    {{ partial "theme-toggle.html" . }}
+    <a class="btn btn-ghost" href="https://github.com/go-fileshare">GitHub</a>
+  </div></header>
+
+  <div class="hero"><div class="wrap">
+    <div>
+      <h1 class="head">One image,<br><span class="accent">every protocol.</span></h1>
+      <p class="sub"><b>Which protocol carries a file is a property of the client at the other end.</b> macOS and Windows reach for SMB, a Linux fleet already has NFS, a browser or a phone has HTTP. Running four servers, each with its own configuration and its own idea of who <i>alice</i> is, is a way to get three of them subtly wrong. Pure Go, <code>CGO_ENABLED=0</code>. BSD-3-Clause.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://go-fileshare.github.io/docs/">Read the documentation →</a>
+        <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">Browse the source</a>
+      </div>
+      <div class="trust"><span><b>5</b> protocols, one configuration</span><span><b>8</b> filesystems, plus 4 by partition</span><span><b>CGO=0</b> one static binary</span></div>
     </div>
-    <div class="cta">
-      <a class="btn primary" href="https://go-fileshare.github.io/docs/">Documentation</a>
-      <a class="btn ghost" href="https://github.com/go-fileshare">GitHub</a>
+    <div class="term">
+      <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">fileshare — zsh</span></div>
+{{/* Real transcript, captured from the built binary. The protocol list is
+     the binary enumerating its own registry rather than a sentence somebody
+     kept in step by hand. Prose wraps here; the check TABLE does not live in
+     this column, because a wrapped table loses the columns that are its
+     whole point — it has a full-width section of its own below. */}}
+<pre><span class="c-com"># which protocols this binary actually has — ask it</span>
+<span class="c-cmd">$ fileshare</span> --protocol nope -i photos.img -u alice -p pw
+<span class="c-key">fileshare: --protocol names none this binary has:
+it has nfs, s3, sftp, smb and webdav</span>
+
+<span class="c-com"># what it would serve, and to whom, before a restart</span>
+<span class="c-cmd">$ fileshare</span> check -c fileshare.hcl
+<span class="c-out">this configuration can be served</span></pre>
     </div>
-  </header>
+  </div></div>
 
-  <main class="wrap">
-    <p class="lead">A person wants to <strong>share an image</strong>. Which protocol carries it
-      is a property of the client at the other end: macOS and Windows reach for SMB, a Linux fleet
-      already has NFS, a browser or a phone has HTTP. Running four servers, each with its own
-      configuration file and its own idea of who <em>alice</em> is, is a way to get three of them
-      subtly wrong.</p>
+  <div class="strip"><div class="wrap">
+    {{/* DERIVED from the protocol list, never typed next to it: a count
+         written beside the data it counts disagrees with it eventually,
+         and nothing fails when it does. */}}
+    <span class="lead-line">{{ len .Site.Params.protocols }} protocols — <b>one directory answers all of them</b>, and not with the same people</span>
+    <div class="mods">{{ range .Site.Params.protocols }}<a href="#protocols">{{ .name }}</a>{{ end }}</div>
+  </div></div>
 
-    <p class="lead"><strong>The protocols do not agree about who is asking</strong>, and that is a
-      fact about the protocols rather than a limitation here. SMB proves somebody by NTLMv2, which
-      needs the password or its <code>MD4(UTF16LE(password))</code>. WebDAV takes HTTP Basic or a
-      bearer token an identity provider signed. SFTP takes a public key or a certificate. S3 takes
-      a <strong>SigV4 signature</strong> &mdash; an HMAC computed from the secret, which therefore
-      has to be the password itself and not a hash of it. NFSv3
-      takes <strong>nothing at all</strong>: <code>AUTH_UNIX</code> is a claim the client makes
-      about itself, and the wire cannot disagree with it.</p>
+  <section id="check" style="padding-top:10px"><div class="wrap">
+    <span class="eyebrow">Before anything is restarted</span>
+    <h2>It says what it would do, and <i>why it would refuse</i>.</h2>
+    <p class="lead"><code>fileshare check</code> opens every image and prints every share against every protocol, and every person against every protocol. The matrix below is real output, with nothing edited but the width of this page.</p>
+    <div class="term" style="margin-top:22px">
+      <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span class="t">fileshare check — zsh</span></div>
+{{/* Verbatim. A table whose columns are computed from its own contents cannot
+     be retyped narrower without ceasing to be the program's answer, so it gets
+     the full width of the page instead of half of it. */}}
+<pre style="white-space:pre;overflow-x:auto"><span class="c-out">FILESHARE
 
-    <p class="lead"><strong>So one directory answers different protocols for different people.</strong>
-      Somebody whose password is held here reaches SMB, WebDAV and S3. Somebody an LDAP server will
-      only <em>check</em> reaches WebDAV and neither of the other two. Somebody with only a public
-      key reaches SFTP. That is not a policy &mdash; it is what each protocol needs in order to
-      prove anything &mdash; and <code>fileshare check</code> prints the whole matrix before
-      anything is restarted, rather than leaving it to be found at a mount.</p>
+SHARE   IMAGE                FILESYSTEM  WHO MAY CONNECT           WHO MAY WRITE             SMB  NFS  WEBDAV  SFTP  S3
+photos  /tmp/srv/photos.img  fat32       alice                     alice                     yes  </span><span class="c-key">NO</span><span class="c-out">   yes     yes   yes
+public  /tmp/srv/pub.img     fat32       anyone who authenticates  anyone who authenticates  yes  yes  yes     yes   yes</span>
 
-    <p class="lead">So <strong>a share that names who may use it is not exported over NFS</strong> —
-      not a warning and not an option. A configuration that says <em>photos belongs to alice</em>
-      and a protocol that hands photos to whoever connects cannot both be honoured, and quietly
-      widening access is the worse of the two failures. <code>fileshare check</code> prints the
-      whole matrix, every share against every protocol and every person against every protocol,
-      before anything is restarted.</p>
+<span class="c-key" style="display:block;white-space:pre-wrap">photos is not served over nfs: it is restricted to alice, and NFSv3 on its own has no authentication: AUTH_UNIX is a claim the client makes about itself and the wire cannot disagree with it. A kerberos block lifts this: sec=krb5 carries a principal a ticket proves</span>
 
-    <p class="lead"><strong>That refusal used to be permanent, and is not any more.</strong> A
-      <code>kerberos</code> block gives NFS something to check: <code>sec=krb5</code> carries a
-      principal a ticket <em>proves</em>, rather than a uid the client asserts — and a restricted
-      share is then exported over NFS like anywhere else. The realm is compared, not just the name
-      before the <code>@</code>: two realms can each have an <em>alice</em>, and only one of them
-      is yours.</p>
+<span class="c-out">USER   FROM                    AUTHENTICATES WITH           SMB  WEBDAV  SFTP  S3
+alice  the configuration file  a password from /tmp/srv/pw  yes  yes     -     yes
+bob    the configuration file  1 key                        -    -       yes   -
 
-    <p class="lead"><strong>The people can come from somewhere else.</strong> A <code>user</code>
-      block is the whole directory for a household; a site whose people are already in a database
-      or in LDAP names them where they are, through
-      <a href="https://pkg.go.dev/github.com/go-authn/directory">go-authn/directory</a> — the same
-      <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a
-      site describes its directory once.</p>
+this configuration can be served</span></pre>
+    </div>
+  </div></section>
 
-    <h2 class="section">Repositories</h2>
-    <section class="grid">
-      {{ range .Site.Params.repos }}
-      <article class="card">
-        <h3>
-          <a href="{{ if .godoc }}https://pkg.go.dev/github.com/go-fileshare/{{ .name }}{{ else }}https://github.com/go-fileshare/{{ .name }}{{ end }}"><code>{{ .name }}</code></a>
-          <span class="tags"><span class="type {{ .type }}">{{ .type }}</span><span class="kind {{ if eq .kind "3d" }}id3d{{ else }}{{ .kind }}{{ end }}">{{ .kind }}</span></span>
-        </h3>
-        <p class="ver">{{ with .version }}{{ . }} · {{ end }}<a href="https://github.com/go-fileshare/{{ .name }}">github.com/go-fileshare/{{ .name }}</a></p>
-        <p>{{ .blurb | markdownify }}</p>
-        <div class="badges">
-          {{ if .ci }}<a href="https://github.com/go-fileshare/{{ .name }}/actions/workflows/ci.yml"><img src="https://github.com/go-fileshare/{{ .name }}/actions/workflows/ci.yml/badge.svg" alt="CI"></a>{{ end }}
-          {{ with .cov }}<img src="https://img.shields.io/badge/coverage-{{ . | urlquery }}-{{ if eq . "100%" }}brightgreen{{ else }}green{{ end }}" alt="coverage {{ . }}{{ if ne . "100%" }} — the floor CI enforces; the standard is 100%{{ end }}">{{ end }}
-        </div>
-      </article>
+  <section id="why"><div class="wrap">
+    <span class="eyebrow">Why go-fileshare</span>
+    <h2>The protocols do not agree about <i>who is asking</i>.</h2>
+    <p class="lead">That is a fact about the protocols, not a limitation here. What a person can be served over depends on what the directory holds for them — so the honest thing is to compute that matrix and print it, rather than leave it to be discovered at a mount.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">🔐</div><h3>What proves somebody differs by protocol</h3><p>SMB needs NTLMv2, so it needs the password or its <code>MD4(UTF16LE(password))</code>. S3 needs the password <i>itself</i>, because SigV4 is an HMAC computed from it. SFTP takes a public key or a certificate. A person holding only a key reaches SFTP and nothing else.</p></div>
+      <div class="card"><div class="ico">🚫</div><h3>A refusal, not a warning</h3><p>A share that names who may use it is <b>not</b> exported over NFS. A configuration saying <i>photos belongs to alice</i> and a protocol handing photos to whoever connects cannot both be honoured, and quietly widening access is the worse of the two failures.</p></div>
+      <div class="card"><div class="ico">🎫</div><h3>Kerberos lifts that refusal</h3><p>A <code>kerberos</code> block gives NFS something to check: <code>sec=krb5</code> carries a principal a ticket <i>proves</i>, rather than a uid the client asserts. The realm is compared, not just the name before the <code>@</code> — two realms can each have an <i>alice</i>.</p></div>
+      <div class="card"><div class="ico">📋</div><h3>Said before it is served</h3><p><code>fileshare check</code> opens every image and prints every share against every protocol and every person against every protocol. A name that belongs to no <code>user</code> block is refused at startup rather than locking Alice out of her own share.</p></div>
+      <div class="card"><div class="ico">💽</div><h3>One image, opened once</h3><p>fat32, exfat, ext4, ntfs, ufs, iso9660, squashfs and hfs+, with apfs, btrfs, xfs and zfs by partition — read by <a href="https://github.com/go-filesystems">go-filesystems</a>. Every protocol shares that one open image behind one lock.</p></div>
+      <div class="card"><div class="ico">⚖️</div><h3>Judged by other people's clients</h3><p>Samba's <code>smbclient</code>, macOS's Finder, Windows' own redirector, OpenSSH's <code>sftp</code>, <code>mount_nfs</code>. A fixture built from one reading of a protocol can only confirm that reading — which is how the one defect only Windows could find was found.</p></div>
+    </div>
+  </div></section>
+
+  <section id="protocols" style="padding-top:10px"><div class="wrap">
+    <span class="eyebrow">What each protocol needs</span>
+    <h2>Five answers to <i>who is asking</i>.</h2>
+    <div class="grid">
+      {{ range .Site.Params.protocols }}
+      <div class="card"><h3><code>{{ .name }}</code></h3><p>{{ .proves | markdownify }}</p></div>
       {{ end }}
-    </section>
-    <p class="principles">One image, opened once, shared by every protocol behind one lock.
-      Pure Go with <code>CGO_ENABLED=0</code>, gated in CI on Linux, macOS and Windows and on six
-      architectures under qemu. Verified against clients this project did not write: Samba's
-      <code>smbclient</code>, macOS's Finder, Windows' own redirector, OpenSSH's <code>sftp</code>
-      and <code>mount_nfs</code> — which is how the one defect only Windows could find was found.</p>
-  </main>
+    </div>
+  </div></section>
 
-  <footer class="wrap">
-    BSD-3-Clause · <a href="https://github.com/go-fileshare">github.com/go-fileshare</a>
-  </footer>
-  <script>
-  (function(){
-    var order=['system','light','dark'], root=document.documentElement;
-    var labels={system:'🖥️ System',light:'☀️ Light',dark:'🌙 Dark'};
-    function apply(m){ if(m==='system'){root.removeAttribute('data-theme');}else{root.setAttribute('data-theme',m);} localStorage.setItem('theme',m); var el=document.getElementById('theme-label'); if(el)el.textContent=labels[m]; }
-    var mode=localStorage.getItem('theme')||'system'; apply(mode);
-    var btn=document.getElementById('theme-toggle');
-    if(btn) btn.addEventListener('click',function(){ mode=order[(order.indexOf(mode)+1)%order.length]; apply(mode); });
-  })();
-  </script>
+  <section id="stats" style="padding-top:10px"><div class="wrap">
+    <div class="stats">
+      <div><div class="n">{{ len .Site.Params.protocols }}</div><div class="l">protocols from one configuration file</div></div>
+      <div><div class="n">1</div><div class="l">image, opened once, behind one lock</div></div>
+      {{ $t := index (where .Site.Params.repos "name" "fileshare") 0 }}
+      <div><div class="n">{{ $t.cov }}</div><div class="l">coverage the CI gate enforces on <code>{{ $t.name }}</code></div></div>
+      <div><div class="n">3 × 6</div><div class="l">Linux, macOS and Windows; six architectures under qemu</div></div>
+    </div>
+  </div></section>
+
+  <section id="eco" style="padding-top:6px"><div class="wrap">
+    <div class="band">
+      <h2>File sharing that ships like Go.</h2>
+      <p>No cgo, no frameworks, no runtime to install. A build tag leaves a protocol out of the binary entirely, and <code>--isolate</code> gives each one its own process, opening only the images it may serve. The people can come from a <code>user</code> block, a database or LDAP — the same <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a site describes its directory once.</p>
+      <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">Read the source on GitHub →</a>
+    </div>
+  </div></section>
+
+  <footer><div class="wrap"><span>© the go-fileshare authors · BSD-3-Clause</span><span>Pure Go · CGO_ENABLED=0 · no frameworks</span></div></footer>
 </body>
 </html>
