@@ -9,8 +9,8 @@
      go-fileshare an authentication project. The body was right the whole time,
      which is why nobody saw it: the defect lived in the two lines a reader
      never looks at and a build never checks. */}}
-<title>{{ .Site.Title }} — one disk image over SMB, NFS, WebDAV, SFTP and S3</title>
-<meta name="description" content="go-fileshare serves one disk image over SMB, NFS, WebDAV, SFTP and S3 — the same users, the same per-share access, from one configuration file. The protocols disagree about who is asking, so what a person can be served depends on what the directory holds for them, and `fileshare check` prints the whole matrix before anything is restarted. Pure Go, CGO_ENABLED=0, checked against clients it did not write.">
+<title>{{ .Site.Title }} — a disk image or a directory over SMB, NFS, WebDAV, SFTP and S3</title>
+<meta name="description" content="go-fileshare serves a disk image, a device or a directory over SMB, NFS, WebDAV, SFTP and S3 — the same users, the same per-share access, from one configuration file. The protocols disagree about who is asking, so what a person can be served depends on what the directory holds for them, and `fileshare check` prints the whole matrix before anything is restarted. Pure Go, CGO_ENABLED=0, checked against clients it did not write.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 {{ partial "styles.html" . }}
 </head>
@@ -73,7 +73,7 @@ SHARE   IMAGE                FILESYSTEM  WHO MAY CONNECT           WHO MAY WRITE
 photos  /tmp/srv/photos.img  fat32       alice                     alice                     yes  </span><span class="c-key">NO</span><span class="c-out">   yes     yes   yes
 public  /tmp/srv/pub.img     fat32       anyone who authenticates  anyone who authenticates  yes  yes  yes     yes   yes</span>
 
-<span class="c-key" style="display:block;white-space:pre-wrap">photos is not served over nfs: it is restricted to alice, and NFSv3 on its own has no authentication: AUTH_UNIX is a claim the client makes about itself and the wire cannot disagree with it. A kerberos block lifts this: sec=krb5 carries a principal a ticket proves</span>
+<span class="c-key" style="display:block;white-space:pre-wrap">photos is not served over nfs: it is restricted to alice, and NFSv3 on its own has no authentication: AUTH_UNIX is a claim the client makes about itself and the wire cannot disagree with it. A kerberos block lifts this: sec=krb5 carries a principal a ticket proves; so does identity = "certificate" on the nfs serve block: RPC-over-TLS with a client certificate naming the person</span>
 
 <span class="c-out">USER   FROM                    AUTHENTICATES WITH           SMB  WEBDAV  SFTP  S3
 alice  the configuration file  a password from /tmp/srv/pw  yes  yes     -     yes
@@ -90,9 +90,11 @@ this configuration can be served</span></pre>
     <div class="grid">
       <div class="card"><div class="ico">🔐</div><h3>What proves somebody differs by protocol</h3><p>SMB needs NTLMv2, so it needs the password or its <code>MD4(UTF16LE(password))</code>. S3 needs the password <i>itself</i>, because SigV4 is an HMAC computed from it. SFTP takes a public key or a certificate. A person holding only a key reaches SFTP and nothing else.</p></div>
       <div class="card"><div class="ico">🚫</div><h3>A refusal, not a warning</h3><p>A share that names who may use it is <b>not</b> exported over NFS. A configuration saying <i>photos belongs to alice</i> and a protocol handing photos to whoever connects cannot both be honoured, and quietly widening access is the worse of the two failures.</p></div>
-      <div class="card"><div class="ico">🎫</div><h3>Kerberos lifts that refusal</h3><p>A <code>kerberos</code> block gives NFS something to check: <code>sec=krb5</code> carries a principal a ticket <i>proves</i>, rather than a uid the client asserts. The realm is compared, not just the name before the <code>@</code> — two realms can each have an <i>alice</i>.</p></div>
+      <div class="card"><div class="ico">🎫</div><h3>Kerberos, or a certificate, lifts that refusal</h3><p>A <code>kerberos</code> block gives NFS something to check: <code>sec=krb5</code> carries a principal a ticket <i>proves</i>, rather than a uid the client asserts. The realm is compared, not just the name before the <code>@</code> — two realms can each have an <i>alice</i>. Or <code>identity = "certificate"</code>: RPC-over-TLS, and the person named in the client certificate, checked against its CRL at every call.</p></div>
       <div class="card"><div class="ico">📋</div><h3>Said before it is served</h3><p><code>fileshare check</code> opens every image and prints every share against every protocol and every person against every protocol. A name that belongs to no <code>user</code> block is refused at startup rather than locking Alice out of her own share.</p></div>
-      <div class="card"><div class="ico">💽</div><h3>One image, opened once</h3><p>fat32, exfat, ext4, ntfs, ufs, iso9660, squashfs and hfs+, with apfs, btrfs, xfs and zfs by partition — read by <a href="https://github.com/go-filesystems">go-filesystems</a>. Every protocol shares that one open image behind one lock.</p></div>
+      <div class="card"><div class="ico">💽</div><h3>One image, opened once</h3><p>fat32, exfat, ext4, ntfs, ufs, iso9660, squashfs and hfs+, with apfs, btrfs, xfs and zfs by partition — read by <a href="https://github.com/go-filesystems">go-filesystems</a>. Every protocol shares that one open image behind one lock. A block device works the same way, and a <b>directory</b> is served through an <code>os.Root</code>, so a link out of it is refused by the kernel.</p></div>
+      <div class="card"><div class="ico">🎓</div><h3>Your institution's login</h3><p>An <code>oidc</code> block admits the people an identity provider vouches for — such as <a href="https://github.com/go-authn/bridge">go-authn/bridge</a> in front of a SAML federation: a token over WebDAV, the provider's SSH certificate or an opkssh one over SFTP, a client certificate over NFS. Shares name its groups and domains.</p></div>
+      <div class="card"><div class="ico">⛔</div><h3>Taken back everywhere, failing closed</h3><p>The provider's KRL and CRL are fetched, their signatures and expiry verified, never taken older than the one held — across a restart too. A CAEP <code>session-revoked</code> over <a href="https://go-fileshare.github.io/docs/latest/security/shared-signals/">shared signals</a> voids what no list can name. A list that cannot be had refuses, rather than lets everyone through.</p></div>
       <div class="card"><div class="ico">⚖️</div><h3>Judged by other people's clients</h3><p>Samba's <code>smbclient</code>, macOS's Finder, Windows' own redirector, OpenSSH's <code>sftp</code>, <code>mount_nfs</code>. A fixture built from one reading of a protocol can only confirm that reading — which is how the one defect only Windows could find was found.</p></div>
     </div>
   </div></section>
@@ -126,7 +128,7 @@ this configuration can be served</span></pre>
   <section id="eco" style="padding-top:6px"><div class="wrap">
     <div class="band">
       <h2>File sharing that ships like Go.</h2>
-      <p>No cgo, no frameworks, no runtime to install. A build tag leaves a protocol out of the binary entirely, and <code>--isolate</code> gives each one its own process, opening only the images it may serve. The people can come from a <code>user</code> block, a database or LDAP — the same <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a site describes its directory once.</p>
+      <p>No cgo, no frameworks, no runtime to install. A build tag leaves a protocol out of the binary entirely, and <code>--isolate</code> gives each one its own process, opening only the images it may serve. The people can come from a <code>user</code> block, a database or LDAP — the same <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a site describes its directory once — or from an identity provider. Shares can be changed live through a gRPC admin API, and TLS comes from files or ACME.</p>
       <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">Read the source on GitHub →</a>
     </div>
   </div></section>
