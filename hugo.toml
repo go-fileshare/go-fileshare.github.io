@@ -23,7 +23,6 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
   name = "fileshare"
   kind = "server"
   type = "tool"
-  version = "v0.16.6"
   ci = true
   godoc = false
   cov = "≥70%"
