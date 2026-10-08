@@ -27,7 +27,7 @@
       <h1 class="head">One image,<br><span class="accent">every protocol.</span></h1>
       <p class="sub"><b>Which protocol carries a file is a property of the client at the other end.</b> macOS and Windows reach for SMB, a Linux fleet already has NFS, a browser or a phone has HTTP. Running four servers, each with its own configuration and its own idea of who <i>alice</i> is, is a way to get three of them subtly wrong. Pure Go, <code>CGO_ENABLED=0</code>. BSD-3-Clause.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://go-fileshare.github.io/docs/">Read the documentation →</a>
+        <a class="btn btn-primary" href="https://go-fileshare.github.io/docs/">{{ partial "icons/book.html" . }}Read the documentation →</a>
         <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">{{ partial "icons/github.html" . }}Browse the source</a>
       </div>
       <div class="trust"><span><b>5</b> protocols, one configuration</span><span><b>8</b> filesystems, plus 4 by partition</span><span><b>CGO=0</b> one static binary</span></div>
@@ -130,7 +130,7 @@ this configuration can be served</span></pre>
     <div class="band">
       <h2>File sharing that ships like Go.</h2>
       <p>No cgo, no frameworks, no runtime to install. A build tag leaves a protocol out of the binary entirely, and <code>--isolate</code> gives each one its own process, opening only the images it may serve. The people can come from a <code>user</code> block, a database or LDAP — the same <code>users</code> block <a href="https://github.com/go-authn/authnd">authnd</a> reads, so a site describes its directory once — or from an identity provider. Shares can be changed live through a gRPC admin API, and TLS comes from files or ACME.</p>
-      <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">Read the source on GitHub →</a>
+      <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">{{ partial "icons/github.html" . }}Read the source on GitHub →</a>
     </div>
   </div></section>
 
