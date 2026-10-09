@@ -19,8 +19,8 @@
     <a class="brand" href="/"><img class="glyph" src="/img/logo.svg" width="32" height="32" alt="go-fileshare logo"> go-fileshare</a>
     <nav><a href="#why">Why</a><a href="#protocols">Protocols</a><a href="#eco">Repository</a></nav>
     {{ partial "theme-toggle.html" . }}
-    <a class="btn btn-ghost" href="https://github.com/go-fileshare">{{ partial "icons/github.html" . }}GitHub</a>
   </div></header>
+  {{ partial "fork-ribbon.html" "https://github.com/go-fileshare/fileshare" }}
 
   <div class="hero"><div class="wrap">
     <div>
@@ -28,7 +28,6 @@
       <p class="sub"><b>Which protocol carries a file is a property of the client at the other end.</b> macOS and Windows reach for SMB, a Linux fleet already has NFS, a browser or a phone has HTTP. Running four servers, each with its own configuration and its own idea of who <i>alice</i> is, is a way to get three of them subtly wrong. Pure Go, <code>CGO_ENABLED=0</code>. BSD-3-Clause.</p>
       <div class="cta">
         <a class="btn btn-primary" href="https://go-fileshare.github.io/docs/">{{ partial "icons/book.html" . }}Read the documentation →</a>
-        <a class="btn btn-ghost" href="https://github.com/go-fileshare/fileshare">{{ partial "icons/github.html" . }}Browse the source</a>
       </div>
       <div class="trust"><span><b>5</b> protocols, one configuration</span><span><b>8</b> filesystems, plus 4 by partition</span><span><b>CGO=0</b> one static binary</span></div>
     </div>
