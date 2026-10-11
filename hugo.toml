@@ -67,16 +67,16 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
 # README; "version" is the release the text describes.
 [[params.uis]]
   name = "portal"
-  version = "v0.2.0"
+  version = "v0.3.1"
   what = "The server behind the UIs. It logs a person in (OIDC), keeps the session in encrypted cookies, holds a token per fileshare server, and passes the admin API (Connect) and WebDAV through. The page never sees a token. Files are served **inert**: a document on a share cannot run as the portal."
 
 [[params.uis]]
   name = "console"
-  version = "v0.3.1"
+  version = "v0.3.2"
   what = "The admin console: shares, grants, volumes and server state on **every** fileshare server a portal knows, from one page. It runs in a browser behind the portal, or as a native window that logs in through the system browser."
 
 [[params.uis]]
   name = "explorer"
-  version = "v0.1.0"
-  what = "The file explorer: browse, upload, download, rename, copy and delete. Uploads go in pieces, so a browser never holds a whole file. A rename never replaces a file already there, and a delete takes two presses."
+  version = "v0.2.0"
+  what = "The file explorer: browse, upload, download, rename, copy and delete. Uploads go in pieces, so a browser never holds a whole file. A rename never replaces a file already there, and a delete takes two presses. In a browser behind the portal, or as a native window that logs in through the system browser."
 
