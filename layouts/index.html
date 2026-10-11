@@ -17,7 +17,7 @@
 <body class="lm">
   <header class="nav"><div class="wrap">
     <a class="brand" href="/"><img class="glyph" src="/img/logo.svg" width="32" height="32" alt="go-fileshare logo"> go-fileshare</a>
-    <nav><a href="#why">Why</a><a href="#protocols">Protocols</a><a href="#eco">Repository</a></nav>
+    <nav><a href="#why">Why</a><a href="#protocols">Protocols</a><a href="#uis">UIs</a><a href="#eco">Repository</a></nav>
     {{ partial "theme-toggle.html" . }}
   </div></header>
   {{ partial "fork-ribbon.html" "https://github.com/go-fileshare/fileshare" }}
@@ -105,6 +105,17 @@ this configuration can be served</span></pre>
     <div class="grid">
       {{ range .Site.Params.protocols }}
       <div class="card"><h3><code>{{ .name }}</code></h3><p>{{ .proves | markdownify }}</p></div>
+      {{ end }}
+    </div>
+  </div></section>
+
+  <section id="uis" style="padding-top:10px"><div class="wrap">
+    <span class="eyebrow">In a browser, or natively</span>
+    <h2>Many servers, <i>one login</i>.</h2>
+    <p>Written once in Go with <a href="https://github.com/go-widgets">go-widgets</a>: the same code is a page served by the portal and a native window. The console and the explorer are each tested in headless Chrome, behind the real portal binary, in front of real fileshare binaries.</p>
+    <div class="grid">
+      {{ range .Site.Params.uis }}
+      <div class="card"><h3><a href="https://github.com/go-fileshare/{{ .name }}"><code>{{ .name }}</code></a> <small>{{ .version }}</small></h3><p>{{ .what | markdownify }}</p></div>
       {{ end }}
     </div>
   </div></section>
