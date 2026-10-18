@@ -72,11 +72,11 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
 
 [[params.uis]]
   name = "console"
-  version = "v0.3.2"
+  version = "v0.3.3"
   what = "The admin console: shares, grants, volumes and server state on **every** fileshare server a portal knows, from one page. It runs in a browser behind the portal, or as a native window that logs in through the system browser."
 
 [[params.uis]]
   name = "explorer"
-  version = "v0.3.0"
+  version = "v0.3.1"
   what = "The file explorer: browse, upload, download, rename, copy and delete. Uploads go in pieces, so a browser never holds a whole file, and one that fails resumes where it stopped -- by the same file only. A rename never replaces a file already there, and a delete takes two presses. In a browser behind the portal, or as a native window that logs in through the system browser."
 
