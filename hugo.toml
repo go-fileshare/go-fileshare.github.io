@@ -36,7 +36,7 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
   ci = true
   godoc = false
   cov = "≥70%"
-  blurb = "A disk image, a device or a directory over SMB, NFS, WebDAV, SFTP and **S3**: the same users, the same per-share access, one configuration file. A share that names who may use it is **not** exported over NFS, because `AUTH_UNIX` is a claim rather than a proof — unless a `kerberos` block gives NFS a ticket to check. Over S3 a share is a bucket, signed with SigV4. A directory can be served **as each person** (`identity = \"system\"`, SFTP and WebDAV): a worker running with their uid opens their files, so the kernel applies the permissions and what they create is theirs. Since **v0.32.0** it also runs as a **WebAssembly container** (`GOOS=wasip1`): WebDAV in the go-wasmcontainers engine, 6.5 MB gzip. A playground image with the explorer as a browser client is coming in the next playground release ([playground#31](https://github.com/go-wasmcontainers/playground/pull/31))."
+  blurb = "A disk image, a device or a directory over SMB, NFS, WebDAV, SFTP and **S3**: the same users, the same per-share access, one configuration file. A share that names who may use it is **not** exported over NFS, because `AUTH_UNIX` is a claim rather than a proof — unless a `kerberos` block gives NFS a ticket to check. Over S3 a share is a bucket, signed with SigV4. A directory can be served **as each person** (`identity = \"system\"`, SFTP and WebDAV): a worker running with their uid opens their files, so the kernel applies the permissions and what they create is theirs."
 
 # The five protocols this binary has. The list is not typed from memory: it is
 # what `fileshare --protocol <nonsense>` enumerates when it refuses, which is
