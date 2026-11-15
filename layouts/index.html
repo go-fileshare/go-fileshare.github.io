@@ -25,10 +25,9 @@
   <div class="hero"><div class="wrap">
     <div>
       <h1 class="head">One image,<br><span class="accent">every protocol.</span></h1>
-      <p class="sub"><b>Which protocol carries a file is a property of the client at the other end.</b> macOS and Windows reach for SMB, a Linux fleet already has NFS, a browser or a phone has HTTP. Running four servers, each with its own configuration and its own idea of who <i>alice</i> is, is a way to get three of them subtly wrong. Pure Go, <code>CGO_ENABLED=0</code>. BSD-3-Clause.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="https://go-fileshare.github.io/docs/">{{ partial "icons/book.html" . }}Read the documentation →</a>
-      </div>
+      <p class="sub"><b>Which protocol carries a file is a property of the client at the other end.</b> macOS and Windows reach for SMB, a Linux fleet already has NFS, a browser or a phone has HTTP. Running four servers, each with its own configuration and its own idea of who <i>alice</i> is, is a way to get three of them subtly wrong. {{ if partial "mantra-on.html" . }}Go{{ else }}Pure Go{{ end }}, <code>{{ if not (partial "mantra-on.html" $) }}CGO_ENABLED=0{{ end }}</code>. {{ if not (partial "mantra-on.html" $) }}BSD-3-Clause{{ end }}.</p>
+      {{/* [[params.cta]] in hugo.toml: the kit renders the row */}}
+      {{ partial "cta.html" . }}
       <div class="trust"><span><b>5</b> protocols, one configuration</span><span><b>8</b> filesystems, plus 4 by partition</span><span><b>CGO=0</b> one static binary</span></div>
     </div>
     <div class="term">
@@ -147,6 +146,6 @@ this configuration can be served</span></pre>
     </div>
   </div></section>
 
-  <footer><div class="wrap"><span>© the go-fileshare authors · BSD-3-Clause</span><span>Pure Go · CGO_ENABLED=0 · no frameworks</span></div></footer>
+  <footer><div class="wrap"><span>© the go-fileshare authors{{ if not (partial "mantra-on.html" $) }} · BSD-3-Clause{{ end }}</span><span>{{ if not (partial "mantra-on.html" $) }}Pure Go · {{ end }}{{ if not (partial "mantra-on.html" $) }}CGO_ENABLED=0 · {{ end }}no frameworks</span></div></footer>
 </body>
 </html>
