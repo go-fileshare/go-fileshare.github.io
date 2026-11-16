@@ -122,6 +122,16 @@ this configuration can be served</span></pre>
     </div>
   </div></section>
 
+  <section id="libs" style="padding-top:10px"><div class="wrap">
+    <span class="eyebrow">Libraries</span>
+    <h2>Mount a share, <i>no dialog</i>.</h2>
+    <div class="grid">
+      {{ range .Site.Params.libs }}
+      <div class="card"><h3><a href="https://github.com/go-fileshare/{{ .name }}"><code>{{ .name }}</code></a> <small>{{ .version }}</small></h3><p>{{ .what | markdownify }}</p></div>
+      {{ end }}
+    </div>
+  </div></section>
+
   <section id="stats" style="padding-top:10px"><div class="wrap">
     <div class="stats">
       <div><div class="n">{{ len .Site.Params.protocols }}</div><div class="l">protocols from one configuration file</div></div>
