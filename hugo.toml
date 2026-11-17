@@ -83,8 +83,8 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
 # Libraries other programs import.
 [[params.libs]]
   name = "automount"
-  version = "v0.1.0"
-  what = "Mounts an SMB share in the operating system's file manager with **no password dialog**, and unmounts it. A small pure-Go facade over go-macos/netfs (macOS, a volume in the Finder), go-freedesktop/gvfs (GNOME Files) and go-mswin/win32 (a Windows drive letter). **Measured live on macOS only**; the Linux and Windows backends are covered by unit tests with the OS calls replaced, not yet measured live. Used by go-theca/theca `serve --mount`."
+  version = "v0.1.2"
+  what = "Mounts an SMB share in the operating system's file manager with **no password dialog**, and unmounts it. A small pure-Go facade over go-macos/netfs (macOS, a volume in the Finder), go-freedesktop/gvfs (GNOME Files) and go-mswin/win32 (a Windows drive letter). **Measured live on macOS, on Linux (Ubuntu 24.04, a headless gvfs session) and on Windows 11 (as a standard user and as an administrator)**; not measured: a real GNOME desktop session, and the drive letter's appearance in Explorer's \"This PC\". Used by go-theca/theca `serve --mount`."
 
 # The hero's buttons, rendered by landingkit's cta.html in the kit's order.
 [[params.cta]]
