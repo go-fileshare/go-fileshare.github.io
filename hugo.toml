@@ -61,7 +61,7 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
 
 [[params.protocols]]
   name = "s3"
-  proves = "A SigV4 signature: an HMAC computed from the secret, which therefore has to be **the password itself** and not a hash of it. A share is a bucket."
+  proves = "A SigV4 signature: an HMAC computed from the secret, which therefore has to be **the password itself** and not a hash of it — or, since v0.50.0, **temporary credentials** from STS `AssumeRoleWithWebIdentity` for an OIDC token, so that an unattended machine holds a key and no password. A share is a bucket."
 
 # The UIs, and the server they run behind. Drawn from each repository's
 # README; "version" is the release the text describes.
