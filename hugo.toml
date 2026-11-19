@@ -45,7 +45,7 @@ disableKinds = ["taxonomy", "term", "RSS", "sitemap", "404"]
 # decides who it can serve. Drawn from `fileshare check`'s own matrix.
 [[params.protocols]]
   name = "smb"
-  proves = "NTLMv2. Needs the password, or its `MD4(UTF16LE(password))` — an NT hash is enough, and is what a directory should hold if SMB is all it serves."
+  proves = "NTLMv2. Needs the password, or its `MD4(UTF16LE(password))` — an NT hash is enough, and is what a directory should hold if SMB is all it serves. With a `kerberos` block SMB also takes a **ticket** in place of a password (a Windows machine outside any domain included), and `ntlm = false` turns NTLM off (fileshare v0.50.0)."
 
 [[params.protocols]]
   name = "nfs"
